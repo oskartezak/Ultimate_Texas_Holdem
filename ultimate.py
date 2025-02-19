@@ -121,9 +121,6 @@ def play_game():
 
     dealer_pair_or_ace = any(card['rank'] in ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] for card in dealer_hand)  
 
-    if dealer_pair_or_ace:
-        ante = ante * 2 
-
     winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
     if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
         print("Čestitke, zmagali ste!")
