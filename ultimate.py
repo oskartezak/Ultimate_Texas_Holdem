@@ -14,12 +14,20 @@ def deal_card(deck):
 
 def should_raise_pre_flop(card1, card2):
     higher, lower = sorted([card1, card2], key=lambda c: ranks.index(c['rank']))
+
+    if higher['rank'] == lower['rank'] and ranks.index(higher['rank']) >= ranks.index('3'):
+        return 4
+
     decision_table = {
         ('A', '2'): 'Y', ('A', '3'): 'Y', ('A', '4'): 'Y', ('A', '5'): 'Y', ('A', '6'): 'Y', ('A', '7'): 'Y', ('A', '8'): 'Y', ('A', '9'): 'Y', ('A', '10'): 'Y', ('A', 'J'): 'Y', ('A', 'Q'): 'Y', ('A', 'K'): 'Y',
-        ('K', '10'): 'Y', ('K', 'J'): 'Y', ('K', 'Q'): 'Y',
-        ('Q', '10'): 'Y', ('Q', 'J'): 'Y',
-        ('J', '10'): 'Y'}
-    return 4 if decision_table.get((higher['rank'], lower['rank']), 'N') == 'Y' else 0
+        ('K', '2'): 'S', ('K', '3'): 'S', ('K', '4'): 'S', ('K', '5'): 'S', ('K', '6'): 'S', ('K', '7'): 'S', ('K', '8'): 'S', ('K', '9'): 'S', ('K', '10'): 'Y', ('K', 'J'): 'Y', ('K', 'Q'): 'Y',
+        ('Q', '6'): 'S', ('Q', '7'): 'S', ('Q', '8'): 'S', ('Q', '9'): 'S', ('Q', '10'): 'Y', ('Q', 'J'): 'Y',
+        ('J', '8'): 'S', ('J', '9'): 'S', ('J', '10'): 'Y',
+        ('10', '9'): 'S', ('10', 'J'): 'Y'}
+    
+    decision = decision_table.get((higher['rank'], lower['rank']), 'N')
+    return 4 if decision == 'Y' else 4 if decision == 'S' and higher['suit'] == lower['suit'] else 0
+
 
 def get_best_hand(cards):
     counts = Counter(card['rank'] for card in cards)
