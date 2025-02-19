@@ -70,6 +70,8 @@ def play_game():
     deck_copy = deck.copy()
     random.shuffle(deck_copy)
 
+    budget -= ante
+
     player_hand = [deal_card(deck_copy), deal_card(deck_copy)]
     dealer_hand = [deal_card(deck_copy), deal_card(deck_copy)]
 
@@ -117,8 +119,7 @@ def play_game():
     for bet in betting_history:
         print(bet)
 
-    dealer_pair_or_ace = any(card['rank'] in ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] for card in dealer_hand)
-    ante_win = ante  
+    dealer_pair_or_ace = any(card['rank'] in ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] for card in dealer_hand)  
 
     if dealer_pair_or_ace:
         ante = ante * 2 
@@ -126,12 +127,14 @@ def play_game():
     winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
     if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
         print("Čestitke, zmagali ste!")
+        if dealer_pair_or_ace:
+            ante = ante * 2 
         winnings = current_bet * 2 + ante  
         budget += winnings
         print(f"Vaš dobitek: {winnings}")
     elif winning_hands.index(player_combination) == winning_hands.index(dealer_combination):
         print("Izenačeno! Stavljeni denar vam je povrnjen.")
-        budget += current_bet  
+        budget += current_bet + ante 
     else:
         print("Žal ste izgubili. Poskusite znova!")
 
