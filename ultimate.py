@@ -79,7 +79,6 @@ def get_best_hand(cards):
 
     return "High Card"
 
-
 # check for ante condition
 def dealer_has_pair_or_better_or_ace(dealer_hand, community_cards):
     combined_cards = dealer_hand + community_cards
@@ -89,10 +88,29 @@ def dealer_has_pair_or_better_or_ace(dealer_hand, community_cards):
 
     return hand_strength in stronger_hands or dealer_has_ace
 
+
+def has_blind(blind, player_combination):
+    if player_combination == "Straight":
+        blind *= 2
+    elif player_combination == "Flush":
+        blind *= 2.5
+    elif player_combination == "Full House":
+        blind *= 4
+    elif player_combination == "Four of a Kind":  
+        blind *= 11
+    elif player_combination == "Straight Flush":
+        blind *= 51
+    elif player_combination == "Royal Flush":
+        blind *= 501
+
+    return blind
+
+
 def play_game():
     global budget
 
     ante = 10 # set ante value
+    blind = 10 # set blind value
     current_bet = 0 # variable for bet
     has_bet = False # has already bet or not
     betting_history = [] # save betting history to be printed 
@@ -103,8 +121,9 @@ def play_game():
     # shuffle copied deck
     random.shuffle(deck_copy)
     
-    # subtract ante - always
+    # subtract ante, blind - always
     budget -= ante
+    budget -= blind
 
     # deal hands to player and dealer 
     player_hand = [deal_card(deck_copy), deal_card(deck_copy)]
@@ -158,22 +177,27 @@ def play_game():
     
     print("\nZgodovina stav:")
     for bet in betting_history:
-        print(bet)
+        print(bet)     
 
-    dealer_has_pair_or_better_or_ace = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
- 
     # set ordered winning combinations
     winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
+   
     if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
-        print("Čestitke, zmagali ste!")
-        if dealer_has_pair_or_better_or_ace: # check for ante
-            ante = ante * 2 
-        winnings = current_bet * 2 + ante  
+        
+        print("Čestitke, zmagali ste!") 
+
+        dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+        blind_won = has_blind(blind, player_combination)
+        
+        winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
         budget += winnings
+        winnings -= (current_bet + blind + ante)
+       
         print(f"Vaš dobitek: {winnings}")
+
     elif winning_hands.index(player_combination) == winning_hands.index(dealer_combination):
         print("Izenačeno! Stavljeni denar vam je povrnjen.")
-        budget += current_bet + ante 
+        budget += current_bet + ante + blind
     else:
         print("Žal ste izgubili. Poskusite znova!")
 
