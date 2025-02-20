@@ -60,13 +60,12 @@ def get_best_hand(cards):
     if any(suits[suit] >= 5 for suit in suits):
         return "Flush"
 
-
     unique_ranks = sorted(set(sorted_ranks), reverse=True)
     for i in range(len(unique_ranks) - 4):
         if unique_ranks[i] - unique_ranks[i + 4] == 4:
             return "Straight"
 
-    # check for three of a count
+    # check for three of a kind
     if 3 in counts.values():
         return "Three of a Kind"
 
@@ -79,6 +78,16 @@ def get_best_hand(cards):
         return "One Pair"
 
     return "High Card"
+
+
+# check for ante condition
+def dealer_has_pair_or_better_or_ace(dealer_hand, community_cards):
+    combined_cards = dealer_hand + community_cards
+    hand_strength = get_best_hand(combined_cards)
+    stronger_hands = ["One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
+    dealer_has_ace = any(card['rank'] == 'A' for card in dealer_hand)
+
+    return hand_strength in stronger_hands or dealer_has_ace
 
 def play_game():
     global budget
@@ -151,14 +160,13 @@ def play_game():
     for bet in betting_history:
         print(bet)
 
-    # check for ante condition
-    dealer_pair_or_ace = any(card['rank'] in ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] for card in dealer_hand)  
-
+    dealer_has_pair_or_better_or_ace = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+ 
     # set ordered winning combinations
     winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
     if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
         print("Čestitke, zmagali ste!")
-        if dealer_pair_or_ace: # check for ante
+        if dealer_has_pair_or_better_or_ace: # check for ante
             ante = ante * 2 
         winnings = current_bet * 2 + ante  
         budget += winnings
