@@ -38,15 +38,18 @@ def get_best_hand(cards):
     suits = Counter(card['suit'] for card in cards)
     sorted_ranks = sorted([rank_values[card['rank']] for card in cards], reverse=True)
     
-    # check for royal flush - wrong
-    if {'10', 'J', 'Q', 'K', 'A'}.issubset(counts.keys()) and any(suits[suit] >= 5 for suit in suits):
+    most_common_suit, highest_count = suits.most_common(1)[0]
+    suited_cards = [rank_values[card['rank']] for card in cards if card['suit'] == most_common_suit]
+    # check for royal flush
+    if {'10', 'J', 'Q', 'K', 'A'}.issubset(suited_cards):
         return "Royal Flush"
 
-    # check for straight flush - check, propably not specific enough
-    for suit in suits:
-        suited_cards = [rank_values[card['rank']] for card in cards if card['suit'] == suit]
-        if len(suited_cards) >= 5 and max(suited_cards) - min(suited_cards[:5]) == 4:
-            return "Straight Flush"
+    # check for straight flush
+    unique_ranks = sorted(set(suited_cards), reverse=True)
+    if len(suited_cards) >= 5:
+        for i in range(len(unique_ranks) - 4):
+            if unique_ranks[i] - unique_ranks[i + 4] == 4:
+                return "Straight Flush"
 
     # check for poker
     if 4 in counts.values():
@@ -57,7 +60,7 @@ def get_best_hand(cards):
         return "Full House"
 
     # check for flush
-    if any(suits[suit] >= 5 for suit in suits):
+    if highest_count >= 5:
         return "Flush"
 
     unique_ranks = sorted(set(sorted_ranks), reverse=True)
