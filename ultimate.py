@@ -109,7 +109,47 @@ def has_blind(blind, player_combination):
     return blind
 
 
+def decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand):
+
+    if player_combination != dealer_combination:
+        return None 
+
+    player_counts = Counter(card['rank'] for card in player_final_hand)
+    dealer_counts = Counter(card['rank'] for card in dealer_final_hand)
+
+    # Pair values
+    player_pair = max((rank for rank, count in player_counts.items() if count == 2), key=rank_values.get)
+    dealer_pair = max((rank for rank, count in dealer_counts.items() if count == 2), key=rank_values.get)
+
+    if rank_values[player_pair] > rank_values[dealer_pair]:
+        return "player"
+    elif rank_values[player_pair] < rank_values[dealer_pair]:
+        return "dealer"
+
+    # Biggest 3 kickers for each player and dealer
+    player_kickers = sorted(
+        (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_pair),
+        reverse=True
+    )[:3]  
+
+    dealer_kickers = sorted(
+        (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_pair),
+        reverse=True
+    )[:3]  
+
+    # Comparing kickers
+    for p_kicker, d_kicker in zip(player_kickers, dealer_kickers):
+        if p_kicker > d_kicker:
+            return "player"
+        elif p_kicker < d_kicker:
+            return "dealer"
+
+    return "tie"
+
+
+
 def play_game():
+    
     global budget
 
     ante = 10 # set ante value
@@ -183,8 +223,9 @@ def play_game():
         print(bet)     
 
     # set ordered winning combinations
-    winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
-   
+    winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", 
+                     "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
+
     if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
         
         print("Čestitke, zmagali ste!") 
@@ -195,14 +236,34 @@ def play_game():
         winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
         budget += winnings
         winnings -= (current_bet + blind + ante)
-       
+    
         print(f"Vaš dobitek: {winnings}")
 
     elif winning_hands.index(player_combination) == winning_hands.index(dealer_combination):
-        print("Izenačeno! Stavljeni denar vam je povrnjen.")
-        budget += current_bet + ante + blind
+        result = decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand)
+
+        if result == "player":
+            print("Čestitke, zmagali ste!")  
+            
+            dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+            blind_won = has_blind(blind, player_combination)
+            
+            winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
+            budget += winnings
+            winnings -= (current_bet + blind + ante)
+        
+            print(f"Vaš dobitek: {winnings}")
+
+        elif result == "dealer":
+            print("Žal ste izgubili. Poskusite znova!")
+
+        else: 
+            print("Izenačeno! Stavljeni denar vam je povrnjen.")
+            budget += current_bet + ante + blind
+
     else:
         print("Žal ste izgubili. Poskusite znova!")
+
 
     print(f"\nPreostali proračun: {budget}")
 
