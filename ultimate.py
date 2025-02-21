@@ -108,36 +108,89 @@ def has_blind(blind, player_combination):
 
     return blind
 
-
+# decides kicker / draw
 def decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand):
-
-    if player_combination != dealer_combination:
-        return None 
 
     player_counts = Counter(card['rank'] for card in player_final_hand)
     dealer_counts = Counter(card['rank'] for card in dealer_final_hand)
 
-    # Pair values
-    player_pair = max((rank for rank, count in player_counts.items() if count == 2), key=rank_values.get)
-    dealer_pair = max((rank for rank, count in dealer_counts.items() if count == 2), key=rank_values.get)
+    # kicker for straight draw
+    if player_combination == "Straight":
+        pass 
 
-    if rank_values[player_pair] > rank_values[dealer_pair]:
-        return "player"
-    elif rank_values[player_pair] < rank_values[dealer_pair]:
-        return "dealer"
+    # kicker for flush draw
+    elif player_combination == "Flush":
+        pass 
 
-    # Biggest 3 kickers for each player and dealer
-    player_kickers = sorted(
-        (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_pair),
-        reverse=True
-    )[:3]  
+    # kicker for full house draw
+    elif player_combination == "Full House":
+        pass
 
-    dealer_kickers = sorted(
-        (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_pair),
-        reverse=True
-    )[:3]  
+    # kicker for poker
+    elif player_combination == "Four of a Kind":  
+        pass
 
-    # Comparing kickers
+    # kicker for straight flush
+    elif player_combination == "Straight Flush":
+        pass
+
+    # kicker for royal flush
+    elif player_combination == "Royal Flush":
+        pass
+
+    # kicker for one pair
+    elif player_combination == "One Pair":
+        # Pair values
+        player_pair = max((rank for rank, count in player_counts.items() if count == 2), key=rank_values.get)
+        dealer_pair = max((rank for rank, count in dealer_counts.items() if count == 2), key=rank_values.get)
+
+        if rank_values[player_pair] > rank_values[dealer_pair]:
+            return "player"
+        elif rank_values[player_pair] < rank_values[dealer_pair]:
+            return "dealer"
+
+        # Biggest 3 kickers for each player and dealer
+        player_kickers = sorted(
+            (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_pair),
+            reverse=True
+        )[:3]  
+
+        dealer_kickers = sorted(
+            (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_pair),
+            reverse=True
+        )[:3]  # ni nujno 3, kaj ce je par v teh treh !!!
+
+    # kicker for two pair
+    elif player_combination == "Two Pair":
+        # Pair values
+        player_pairs = sorted((rank_values[rank] for rank, count in player_counts.items() if count == 2), reverse=True)
+        dealer_pairs = sorted((rank_values[rank] for rank, count in dealer_counts.items() if count == 2), reverse = True)
+
+        for player_pair_value, dealer_pair_value in zip(player_pairs, dealer_pairs):
+            if player_pair_value > dealer_pair_value:
+                return "player"
+            elif dealer_pair_value > player_pair_value:
+                return "dealer"
+
+        # Biggest kicker for each player and dealer
+        player_kickers = sorted(
+            (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_pair),
+            reverse=True
+        )[:1]  
+
+        dealer_kickers = sorted(
+            (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_pair),
+            reverse=True
+        )[:1]  
+
+    # kicker for three of a kind
+    elif player_combination == "Three of a Kind":
+        pass
+
+    if player_combination != dealer_combination:
+        return None 
+
+    # Comparing kickers if still undecided, kickers are already sorted
     for p_kicker, d_kicker in zip(player_kickers, dealer_kickers):
         if p_kicker > d_kicker:
             return "player"
