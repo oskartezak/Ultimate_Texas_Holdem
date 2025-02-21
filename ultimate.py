@@ -180,13 +180,28 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
         player_kickers = max(rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] not in player_pairs)
         dealer_kickers = max(rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] not in dealer_pairs)
 
-
-    # kicker for three of a kind
+    # Winner if both player and dealer have threee of a kind
     elif player_combination == "Three of a Kind":
-        pass
+        player_three_of_a_kind = max((rank for rank, count in player_counts.items() if count == 3), key=rank_values.get)
+        dealer_three_of_a_kind = max((rank for rank, count in dealer_counts.items() if count == 3), key=rank_values.get)
+
+        if rank_values[player_three_of_a_kind] > rank_values[dealer_three_of_a_kind]:
+            return "player"
+        elif rank_values[player_three_of_a_kind] < rank_values[dealer_three_of_a_kind]:
+            return "dealer"
+
+        player_kickers = sorted(
+            (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_three_of_a_kind),
+            reverse=True
+        )[:2]
+
+        dealer_kickers = sorted(
+            (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_three_of_a_kind),
+            reverse=True
+        )[:2]
 
     # kicker for straight draw
-    if player_combination == "Straight":
+    elif player_combination == "Straight":
         pass 
 
     # kicker for flush draw
