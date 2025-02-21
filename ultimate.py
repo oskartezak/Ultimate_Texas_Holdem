@@ -114,6 +114,77 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
     player_counts = Counter(card['rank'] for card in player_final_hand)
     dealer_counts = Counter(card['rank'] for card in dealer_final_hand)
 
+    if player_combination != dealer_combination:
+        return None 
+
+    # Winner if both player and dealer have nothing
+    elif player_combination == "High Card":
+        player_kickers = sorted(
+            (rank_values[card['rank']] for card in player_final_hand),
+            reverse=True
+        )[:5]  
+
+        dealer_kickers = sorted(
+            (rank_values[card['rank']] for card in dealer_final_hand),
+            reverse=True
+        )[:5]
+
+    # Winner if both player and dealer have one pair
+    elif player_combination == "One Pair":
+        # Pair values
+        player_pair = max((rank for rank, count in player_counts.items() if count == 2), key=rank_values.get)
+        dealer_pair = max((rank for rank, count in dealer_counts.items() if count == 2), key=rank_values.get)
+
+        if rank_values[player_pair] > rank_values[dealer_pair]:
+            return "player"
+        elif rank_values[player_pair] < rank_values[dealer_pair]:
+            return "dealer"
+
+        # Biggest 3 kickers for each player and dealer
+        player_kickers = sorted(
+            (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_pair),
+            reverse=True
+        )[:3]  
+
+        dealer_kickers = sorted(
+            (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_pair),
+            reverse=True
+        )[:3]  # ni nujno 3, kaj ce je par v teh treh - je nujno ker imas pogoj card['rank'] != player_pair
+
+
+    # Winner if both player and dealer have two pair
+    elif player_combination == "Two Pair":
+        player_pairs = sorted(
+            (rank_values[rank] for rank, count in player_counts.items() if count == 2),
+            reverse=True
+        )[:2]  # Only take the top two pairs if three exist
+
+        dealer_pairs = sorted(
+            (rank_values[rank] for rank, count in dealer_counts.items() if count == 2),
+            reverse=True
+        )[:2]  
+
+        # Comparing the highest pair first
+        if player_pairs[0] > dealer_pairs[0]:
+            return "player"
+        elif player_pairs[0] < dealer_pairs[0]:
+            return "dealer"
+
+        # If the highest pair is the same, compare the second pair
+        if player_pairs[1] > dealer_pairs[1]:
+            return "player"
+        elif player_pairs[1] < dealer_pairs[1]:
+            return "dealer"
+
+        # If both pairs are the same, compare the highest kicker - zloraba mnozine
+        player_kickers = max(rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] not in player_pairs)
+        dealer_kickers = max(rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] not in dealer_pairs)
+
+
+    # kicker for three of a kind
+    elif player_combination == "Three of a Kind":
+        pass
+
     # kicker for straight draw
     if player_combination == "Straight":
         pass 
@@ -137,58 +208,6 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
     # kicker for royal flush
     elif player_combination == "Royal Flush":
         pass
-
-    # kicker for one pair
-    elif player_combination == "One Pair":
-        # Pair values
-        player_pair = max((rank for rank, count in player_counts.items() if count == 2), key=rank_values.get)
-        dealer_pair = max((rank for rank, count in dealer_counts.items() if count == 2), key=rank_values.get)
-
-        if rank_values[player_pair] > rank_values[dealer_pair]:
-            return "player"
-        elif rank_values[player_pair] < rank_values[dealer_pair]:
-            return "dealer"
-
-        # Biggest 3 kickers for each player and dealer
-        player_kickers = sorted(
-            (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_pair),
-            reverse=True
-        )[:3]  
-
-        dealer_kickers = sorted(
-            (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_pair),
-            reverse=True
-        )[:3]  # ni nujno 3, kaj ce je par v teh treh !!!
-
-    # kicker for two pair
-    elif player_combination == "Two Pair":
-        # Pair values
-        player_pairs = sorted((rank_values[rank] for rank, count in player_counts.items() if count == 2), reverse=True)
-        dealer_pairs = sorted((rank_values[rank] for rank, count in dealer_counts.items() if count == 2), reverse = True)
-
-        for player_pair_value, dealer_pair_value in zip(player_pairs, dealer_pairs):
-            if player_pair_value > dealer_pair_value:
-                return "player"
-            elif dealer_pair_value > player_pair_value:
-                return "dealer"
-
-        # Biggest kicker for each player and dealer
-        player_kickers = sorted(
-            (rank_values[card['rank']] for card in player_final_hand if card['rank'] != player_pair),
-            reverse=True
-        )[:1]  
-
-        dealer_kickers = sorted(
-            (rank_values[card['rank']] for card in dealer_final_hand if card['rank'] != dealer_pair),
-            reverse=True
-        )[:1]  
-
-    # kicker for three of a kind
-    elif player_combination == "Three of a Kind":
-        pass
-
-    if player_combination != dealer_combination:
-        return None 
 
     # Comparing kickers if still undecided, kickers are already sorted
     for p_kicker, d_kicker in zip(player_kickers, dealer_kickers):
@@ -237,13 +256,26 @@ def play_game():
 
     # after flop
     community_cards = [deal_card(deck_copy) for _ in range(3)]
-    if not has_bet:  
-        combined_cards = player_hand + community_cards
-        if get_best_hand(combined_cards) in ["One Pair", "Two Pair", "Three of a Kind", "Four of a Kind", "Full House", "Straight", "Flush", "Straight Flush", "Royal Flush"]:
-            current_bet = ante * 2
-            budget -= current_bet
-            has_bet = True
-            betting_history.append(f"Flop: Stavil(a) ste {current_bet}.")
+
+    if not has_bet:
+        combined_cards = player_hand + community_cards  # Combine player hand and community cards
+        
+        # Get the best hand using both player's hole cards and community cards
+        player_best_hand = get_best_hand(combined_cards)  
+        
+        # Check if the best hand uses at least one of the player's hole cards
+        player_hand_ranks = {card['rank'] for card in player_hand}  # Extract ranks from player hand
+        combined_best_hand_ranks = {card['rank'] for card in combined_cards if get_best_hand(combined_cards) == player_best_hand}  # Extract ranks used in the best hand
+
+        # If the best hand includes at least one hole card, place a bet
+        if player_hand_ranks & combined_best_hand_ranks:  # Check if there's any intersection between player hand and best hand
+            if player_best_hand in ["One Pair", "Two Pair", "Three of a Kind", "Four of a Kind", 
+                                    "Full House", "Straight", "Flush", "Straight Flush", "Royal Flush"]:
+                current_bet = ante * 2
+                budget -= current_bet
+                has_bet = True
+                betting_history.append(f"Flop: Stavil(a) ste {current_bet}.")
+
 
     # after river
     community_cards += [deal_card(deck_copy), deal_card(deck_copy)]
@@ -257,6 +289,11 @@ def play_game():
             budget -= current_bet
             has_bet = True
             betting_history.append(f"Turn & River: Stavil(a) ste {current_bet}.")
+
+        # If no conditions are met, the player folds and the game ends
+        else:
+            has_bet = False
+            betting_history.append("Fold")    
 
     # take all available cards for evalueation
     player_final_hand = player_hand + community_cards
