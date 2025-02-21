@@ -183,7 +183,19 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
 
     # kicker for three of a kind
     elif player_combination == "Three of a Kind":
-        pass
+        # threes value
+        player_threes = list((rank_values[rank] for rank, count in player_counts.items() if count == 3))[0]
+        dealer_threes = list((rank_values[rank] for rank, count in dealer_counts.items() if count == 3))[0]
+        
+        # compare threes value
+        if player_threes > dealer_threes:
+            return "player"
+        elif player_threes < dealer_threes:
+            return "dealer"
+        
+        # compare kickers
+        player_kickers = list(rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] != player_threes)[:2]
+        dealer_kickers = list(rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] != dealer_threes)[:2]
 
     # kicker for straight draw
     if player_combination == "Straight":
@@ -199,8 +211,13 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
 
     # kicker for poker
     elif player_combination == "Four of a Kind":  
-        pass
+        # check what rank is in poker
+        rank = list((rank_values[rank] for rank, count in player_counts.items() if count == 3))[0]
 
+        # check just one kicker
+        player_kickers = max(rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] != rank)
+        dealer_kickers = max(rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] != rank)
+    
     # kicker for straight flush
     elif player_combination == "Straight Flush":
         pass
