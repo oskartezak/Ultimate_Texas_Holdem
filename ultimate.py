@@ -377,6 +377,43 @@ def play_game():
 
     print(f"\nPreostali proračun: {budget}")
 
+def test(player_hand, dealer_hand, community_cards):
+    # take all available cards for evalueation
+    player_final_hand = player_hand + community_cards
+    dealer_final_hand = dealer_hand + community_cards
+
+    # evaluate cards
+    player_combination = get_best_hand(player_final_hand)
+    dealer_combination = get_best_hand(dealer_final_hand)
+    
+    print("\n--- REZULTATI IGRE ---")
+    print(f"Vaša roka: {player_hand}, Kombinacija: {player_combination}")
+    print(f"Delivčeva roka: {dealer_hand}, Kombinacija: {dealer_combination}")
+    print(f"River (5 skupnih kart): {community_cards}")
+
+    # set ordered winning combinations
+    winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", 
+                     "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
+
+    if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
+        
+        print("Čestitke, zmagali ste!") 
+
+    elif winning_hands.index(player_combination) == winning_hands.index(dealer_combination):
+        result = decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand)
+
+        if result == "player":
+            print("Čestitke, zmagali ste!")  
+
+        elif result == "dealer":
+            print("Žal ste izgubili. Poskusite znova!")
+
+        else: 
+            print("Izenačeno! Stavljeni denar vam je povrnjen.")
+
+    else:
+        print("Žal ste izgubili. Poskusite znova!")
+
 if __name__ == "__main__":
     play_game()
 
