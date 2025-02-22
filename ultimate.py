@@ -40,8 +40,9 @@ def get_best_hand(cards):
     
     most_common_suit, highest_count = suits.most_common(1)[0]
     suited_cards = [rank_values[card['rank']] for card in cards if card['suit'] == most_common_suit]
+    suited_ranks = [card['rank'] for card in cards if card['suit'] == most_common_suit]
     # check for royal flush
-    if {'10', 'J', 'Q', 'K', 'A'}.issubset(suited_cards):
+    if {'10', 'J', 'Q', 'K', 'A'}.issubset(suited_ranks):
         return "Royal Flush"
 
     # check for straight flush
@@ -55,8 +56,8 @@ def get_best_hand(cards):
     if 4 in counts.values():
         return "Four of a Kind"
 
-    # check for full house
-    if 3 in counts.values() and 2 in counts.values():
+    # check for full house, 3 and 2 or 3 and 3
+    if 3 in counts.values() and 2 in counts.values() or list(counts.values()).count(3) == 2:
         return "Full House"
 
     # check for flush
@@ -206,15 +207,62 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
 
     # kicker for straight draw
     elif player_combination == "Straight":
-        pass 
+        sorted_ranks_player = sorted({rank_values[card['rank']] for card in player_final_hand}, reverse=True)
+        sorted_ranks_dealer = sorted({rank_values[card['rank']] for card in dealer_final_hand}, reverse=True)
+
+        # go backwards and stop at the biggest
+        for i in range(len(sorted_ranks_player) - 4):
+            if sorted_ranks_player[i] - sorted_ranks_player[i + 4] == 4:
+                for j in range(len(sorted_ranks_dealer) - 4):
+                    if sorted_ranks_dealer[j] - sorted_ranks_dealer[j + 4] == 4:
+                        if sorted_ranks_player[i] > sorted_ranks_dealer[j]:
+                            return "player"
+                        elif sorted_ranks_player[i] < sorted_ranks_dealer[j]:
+                            return "dealer"
+
+        # they have to be initialised
+        player_kickers = []
+        dealer_kickers = []
 
     # kicker for flush draw
     elif player_combination == "Flush":
-        pass 
+        # just one suit possible
+        suits = Counter(card['suit'] for card in player_final_hand)
+
+        # one highest valued card
+        most_common_suit, highest_count = suits.most_common(1)[0]
+        player_kickers = sorted([rank_values[card['rank']] for card in player_final_hand 
+                               if card['suit'] == most_common_suit],
+                               reverse=True)[:1]
+        dealer_kickers = sorted([rank_values[card['rank']] for card in dealer_final_hand 
+                               if card['suit'] == most_common_suit],
+                               reverse=True)[:1]
 
     # kicker for full house draw
     elif player_combination == "Full House":
-        pass
+        # check three of a kind first
+        player_three_of_a_kind = max((rank_values[rank] for rank, count in player_counts.items() if count == 3))
+        dealer_three_of_a_kind = max((rank_values[rank] for rank, count in dealer_counts.items() if count == 3))
+
+        if player_three_of_a_kind > dealer_three_of_a_kind:
+            return "player"
+        elif player_three_of_a_kind < dealer_three_of_a_kind:
+            return "dealer"
+        
+        # secondly check pair
+        player_pair = max((rank_values[rank] for rank, count in player_counts.items() 
+                           if count >= 2 and rank_values[rank] != player_three_of_a_kind))
+        dealer_pair = max((rank_values[rank] for rank, count in dealer_counts.items() 
+                           if count >= 2 and rank_values[rank] != player_three_of_a_kind))
+        
+        if player_pair > dealer_pair:
+            return "player"
+        elif player_pair < dealer_pair:
+            return "dealer"
+        
+        # they have to be initialised
+        player_kickers = []
+        dealer_kickers = []
 
     # kicker for poker
     elif player_combination == "Four of a Kind":  
@@ -231,11 +279,37 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
     
     # kicker for straight flush
     elif player_combination == "Straight Flush":
-        pass
+        # just one suit possible
+        suits = Counter(card['suit'] for card in player_final_hand)
+
+        # one highest valued card
+        most_common_suit, highest_count = suits.most_common(1)[0]
+        sorted_ranks_player = sorted({rank_values[card['rank']] for card in player_final_hand 
+                                      if card["suit"] == most_common_suit}, 
+                                      reverse=True)
+        sorted_ranks_dealer = sorted({rank_values[card['rank']] for card in dealer_final_hand 
+                                      if card["suit"] == most_common_suit}, 
+                                      reverse=True)
+        # they have to be initialised
+        player_kickers = []
+        dealer_kickers = []
+
+        # go backwards and stop at the biggest
+        for i in range(len(sorted_ranks_player) - 4):
+            if sorted_ranks_player[i] - sorted_ranks_player[i + 4] == 4:
+                for j in range(len(sorted_ranks_dealer) - 4):
+                    if sorted_ranks_dealer[j] - sorted_ranks_dealer[j + 4] == 4:
+                        if sorted_ranks_player[i] > sorted_ranks_dealer[j]:
+                            return "player"
+                        elif sorted_ranks_player[i] < sorted_ranks_dealer[j]:
+                            return "dealer"
+                        else:
+                            return "tie"
 
     # kicker for royal flush
     elif player_combination == "Royal Flush":
-        pass
+        #not possible unless on river
+        return "tie"
 
     # Comparing kickers if still undecided, kickers are already sorted
     for p_kicker, d_kicker in zip(player_kickers, dealer_kickers):
