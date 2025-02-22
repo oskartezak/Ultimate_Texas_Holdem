@@ -222,8 +222,12 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
         rank = list((rank_values[rank] for rank, count in player_counts.items() if count == 3))[0]
 
         # check just one kicker
-        player_kickers = max(rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] != rank)
-        dealer_kickers = max(rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] != rank)
+        player_kickers = sorted(
+            (rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] != rank),
+            reverse=True)[:1]
+        dealer_kickers = sorted((
+            rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] != rank),
+            reverse=True)[:1]
     
     # kicker for straight flush
     elif player_combination == "Straight Flush":
