@@ -177,8 +177,12 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
             return "dealer"
 
         # If both pairs are the same, compare the highest kicker - zloraba mnozine
-        player_kickers = max(rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] not in player_pairs)
-        dealer_kickers = max(rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] not in dealer_pairs)
+        player_kickers = sorted(
+            (rank_values[card['rank']] for card in player_final_hand if rank_values[card['rank']] not in player_pairs),
+            reverse=True)[:1]
+        dealer_kickers = sorted(
+            (rank_values[card['rank']] for card in dealer_final_hand if rank_values[card['rank']] not in dealer_pairs),
+            reverse=True)[:1]
 
     # Winner if both player and dealer have threee of a kind
     elif player_combination == "Three of a Kind":
