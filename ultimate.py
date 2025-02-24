@@ -9,6 +9,9 @@ rank_values = {rank: i for i, rank in enumerate(ranks, start=2)}
 deck = [{'rank': rank, 'suit': suit} for suit in suits for rank in ranks]
 
 budget = 1000
+combinations = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Four of a Kind", 
+                "Full House", "Straight", "Flush", "Straight Flush", "Royal Flush"]
+combinations_values = {combination: i for i, combination in enumerate(combinations, start=1)}
 
 # remove a card from the deck and return it "deal a card"
 def deal_card(deck):
@@ -16,17 +19,16 @@ def deal_card(deck):
 
 # function for determining whether a player shoudl bet before flop - maybe changed to bool return value
 def should_raise_pre_flop(card1, card2):
-    higher, lower = sorted([card1, card2], key=lambda c: ranks.index(c['rank']))
+    higher, lower = sorted([card1, card2], key=lambda c: ranks.index(c['rank']), reverse=True)
 
     if higher['rank'] == lower['rank'] and ranks.index(higher['rank']) >= ranks.index('3'):
         return 4
 
     decision_table = {
         ('A', '2'): 'Y', ('A', '3'): 'Y', ('A', '4'): 'Y', ('A', '5'): 'Y', ('A', '6'): 'Y', ('A', '7'): 'Y', ('A', '8'): 'Y', ('A', '9'): 'Y', ('A', '10'): 'Y', ('A', 'J'): 'Y', ('A', 'Q'): 'Y', ('A', 'K'): 'Y',
-        ('K', '2'): 'S', ('K', '3'): 'S', ('K', '4'): 'S', ('K', '5'): 'S', ('K', '6'): 'S', ('K', '7'): 'S', ('K', '8'): 'S', ('K', '9'): 'S', ('K', '10'): 'Y', ('K', 'J'): 'Y', ('K', 'Q'): 'Y',
-        ('Q', '6'): 'S', ('Q', '7'): 'S', ('Q', '8'): 'S', ('Q', '9'): 'S', ('Q', '10'): 'Y', ('Q', 'J'): 'Y',
-        ('J', '8'): 'S', ('J', '9'): 'S', ('J', '10'): 'Y',
-        ('10', '9'): 'S', ('10', 'J'): 'Y'}
+        ('K', '2'): 'S', ('K', '3'): 'S', ('K', '4'): 'S', ('K', '5'): 'Y', ('K', '6'): 'Y', ('K', '7'): 'Y', ('K', '8'): 'S', ('K', '9'): 'S', ('K', '10'): 'Y', ('K', 'J'): 'Y', ('K', 'Q'): 'Y',
+        ('Q', '6'): 'S', ('Q', '7'): 'S', ('Q', '8'): 'Y', ('Q', '9'): 'Y', ('Q', '10'): 'Y', ('Q', 'J'): 'Y',
+        ('J', '8'): 'S', ('J', '9'): 'S', ('J', '10'): 'Y'}
     
     decision = decision_table.get((higher['rank'], lower['rank']), 'N')
     return 4 if decision == 'Y' else 4 if decision == 'S' and higher['suit'] == lower['suit'] else 0
@@ -74,7 +76,7 @@ def get_best_hand(cards):
         return "Three of a Kind"
 
     # check for 2 pairs
-    if list(counts.values()).count(2) == 2:
+    if list(counts.values()).count(2) >= 2:
         return "Two Pair"
 
     # check for pair
@@ -233,10 +235,10 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
         most_common_suit, highest_count = suits.most_common(1)[0]
         player_kickers = sorted([rank_values[card['rank']] for card in player_final_hand 
                                if card['suit'] == most_common_suit],
-                               reverse=True)[:1]
+                               reverse=True)[:5]
         dealer_kickers = sorted([rank_values[card['rank']] for card in dealer_final_hand 
                                if card['suit'] == most_common_suit],
-                               reverse=True)[:1]
+                               reverse=True)[:5]
 
     # kicker for full house draw
     elif player_combination == "Full House":
@@ -363,14 +365,12 @@ def play_game():
         combined_cards = player_hand + community_cards  # Combine player hand and community cards
         
         # Get the best hand using both player's hole cards and community cards
-        player_best_hand = get_best_hand(combined_cards)  
-        
-        # Check if the best hand uses at least one of the player's hole cards
-        player_hand_ranks = {card['rank'] for card in player_hand}  # Extract ranks from player hand
-        combined_best_hand_ranks = {card['rank'] for card in combined_cards if get_best_hand(combined_cards) == player_best_hand}  # Extract ranks used in the best hand
+        player_best_hand = get_best_hand(combined_cards)
+        # Get best community hand  
+        community_best_hand = get_best_hand(community_cards)
 
-        # If the best hand includes at least one hole card, place a bet
-        if player_hand_ranks & combined_best_hand_ranks:  # Check if there's any intersection between player hand and best hand
+        # if best hand is not on the table
+        if player_best_hand != community_best_hand:  
             if player_best_hand in ["One Pair", "Two Pair", "Three of a Kind", "Four of a Kind", 
                                     "Full House", "Straight", "Flush", "Straight Flush", "Royal Flush"]:
                 current_bet = ante * 2
@@ -382,20 +382,29 @@ def play_game():
     # after river
     community_cards += [deal_card(deck_copy), deal_card(deck_copy)]
     if not has_bet:  
-        combined_cards = player_hand + community_cards
-        player_has_pair_or_better = get_best_hand(combined_cards) != "High Card"
-        player_has_high_card = any(rank_values[card['rank']] >= 10 for card in player_hand)
+
+        combined_cards = player_hand + community_cards  # Combine player hand and community cards
         
-        if player_has_pair_or_better or player_has_high_card:
+        # Get the best hand using both player's hole cards and community cards
+        player_best_hand = get_best_hand(combined_cards)
+        # Get best community hand  
+        community_best_hand = get_best_hand(community_cards) 
+        player_has_high_card = any(rank_values[card['rank']] >= 10 for card in player_hand)
+
+        if player_best_hand == community_best_hand:
+            if player_has_high_card:
+                current_bet = ante * 1
+                budget -= current_bet
+                has_bet = True
+                betting_history.append(f"Turn & River: Stavil(a) ste {current_bet}.")
+            else:
+                has_bet = False
+                betting_history.append("Fold")
+        elif combinations_values[player_best_hand] > combinations_values[community_best_hand]:
             current_bet = ante * 1
             budget -= current_bet
             has_bet = True
             betting_history.append(f"Turn & River: Stavil(a) ste {current_bet}.")
-
-        # If no conditions are met, the player folds and the game ends
-        else:
-            has_bet = False
-            betting_history.append("Fold")    
 
     # take all available cards for evalueation
     player_final_hand = player_hand + community_cards
@@ -408,7 +417,7 @@ def play_game():
     print("\n--- REZULTATI IGRE ---")
     print(f"Vaša roka: {player_hand}, Kombinacija: {player_combination}")
     print(f"Delivčeva roka: {dealer_hand}, Kombinacija: {dealer_combination}")
-    print(f"River (5 skupnih kart): {community_cards}")
+    print(f"River (5 skupnih kart): {community_cards[:3]} \n                        {community_cards[3:]}")
     
     print("\nZgodovina stav:")
     for bet in betting_history:
@@ -417,8 +426,10 @@ def play_game():
     # set ordered winning combinations
     winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", 
                      "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
-
-    if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
+    
+    if not has_bet:
+        print("Žal ste izgubili. Poskusite znova!")
+    elif winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
         
         print("Čestitke, zmagali ste!") 
 
