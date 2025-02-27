@@ -269,7 +269,7 @@ def decider(player_combination, player_final_hand, dealer_combination, dealer_fi
     # kicker for poker
     elif player_combination == "Four of a Kind":  
         # check what rank is in poker
-        rank = list((rank_values[rank] for rank, count in player_counts.items() if count == 3))[0]
+        rank = list((rank_values[rank] for rank, count in player_counts.items() if count == 4))[0]
 
         # check just one kicker
         player_kickers = sorted(
@@ -506,6 +506,183 @@ def test(player_hand, dealer_hand, community_cards):
 
     else:
         print("Žal ste izgubili. Poskusite znova!")
+
+def combination_counter(iter = 1000):
+    dealer_count = {}
+    player_count = {}
+
+    for i in range(iter):
+        
+        # copy deck so its not ruined
+        deck_copy = deck.copy()
+
+        # shuffle copied deck
+        random.shuffle(deck_copy)
+        
+        # deal hands to player and dealer 
+        player_hand = [deal_card(deck_copy), deal_card(deck_copy)]
+        dealer_hand = [deal_card(deck_copy), deal_card(deck_copy)]
+        
+        # after flop
+        community_cards = [deal_card(deck_copy) for _ in range(3)]
+
+        # after river
+        community_cards += [deal_card(deck_copy), deal_card(deck_copy)]
+    
+        # take all available cards for evalueation
+        player_final_hand = player_hand + community_cards
+        dealer_final_hand = dealer_hand + community_cards
+
+        # evaluate cards
+        player_combination = get_best_hand(player_final_hand)
+        dealer_combination = get_best_hand(dealer_final_hand)
+        if player_combination not in player_count:
+            player_count[player_combination] = 1
+        else:
+            player_count[player_combination] += 1
+        
+        if dealer_combination not in dealer_count:
+            dealer_count[dealer_combination] = 1
+        else:
+            dealer_count[dealer_combination] += 1
+    player_count = {key: value / iter for key, value in player_count.items()}
+    dealer_count = {key: value / iter for key, value in dealer_count.items()}
+    print(player_count)
+    print(dealer_count)
+
+def simulation_payout(iter = 1000): 
+    global budget
+    budget = 0
+    bets = 0
+    pre = 0
+    flop = 0
+    river = 0
+    fold = 0
+    for i in range(iter):
+
+        ante = 10 # set ante value
+        blind = 10 # set blind value
+        current_bet = 0 # variable for bet
+        has_bet = False # has already bet or not
+
+        # copy deck so its not ruined
+        deck_copy = deck.copy()
+
+        # shuffle copied deck
+        random.shuffle(deck_copy)
+        
+        # subtract ante, blind - always
+        budget -= ante
+        budget -= blind
+        bets += 20
+
+        # deal hands to player and dealer 
+        player_hand = [deal_card(deck_copy), deal_card(deck_copy)]
+        dealer_hand = [deal_card(deck_copy), deal_card(deck_copy)]
+        
+        # pre flop
+        if not has_bet: 
+            # returns 4 if should raise pre flop
+            bet_multiplier = should_raise_pre_flop(player_hand[0], player_hand[1])
+            if bet_multiplier > 0:
+                current_bet = ante * bet_multiplier
+                budget -= current_bet
+                bets += current_bet
+                has_bet = True
+                pre += 1
+               
+
+        # after flop
+        community_cards = [deal_card(deck_copy) for _ in range(3)]
+
+        if not has_bet:
+            combined_cards = player_hand + community_cards  # Combine player hand and community cards
+            
+            # Get the best hand using both player's hole cards and community cards
+            player_best_hand = get_best_hand(combined_cards)
+            # Get best community hand  
+            community_best_hand = get_best_hand(community_cards)
+
+            # if best hand is not on the table
+            if player_best_hand != community_best_hand:  
+                if player_best_hand in ["One Pair", "Two Pair", "Three of a Kind", "Four of a Kind", 
+                                        "Full House", "Straight", "Flush", "Straight Flush", "Royal Flush"]:
+                    current_bet = ante * 2
+                    bets += current_bet
+                    budget -= current_bet
+                    has_bet = True
+                    flop += 1
+
+        # after river
+        community_cards += [deal_card(deck_copy), deal_card(deck_copy)]
+        if not has_bet:  
+
+            combined_cards = player_hand + community_cards  # Combine player hand and community cards
+            
+            # Get the best hand using both player's hole cards and community cards
+            player_best_hand = get_best_hand(combined_cards)
+            # Get best community hand  
+            community_best_hand = get_best_hand(community_cards) 
+            player_has_high_card = any(rank_values[card['rank']] >= 10 for card in player_hand)
+
+            if player_best_hand == community_best_hand:
+                if player_has_high_card:
+                    current_bet = ante * 1
+                    bets += 1
+                    river += 1
+                    budget -= current_bet
+                    has_bet = True
+                    
+                else:
+                    has_bet = False
+                    
+            elif combinations_values[player_best_hand] > combinations_values[community_best_hand]:
+                current_bet = ante * 1
+                bets += current_bet
+                river += 1
+                budget -= current_bet
+                has_bet = True
+            
+        # take all available cards for evalueation
+        player_final_hand = player_hand + community_cards
+        dealer_final_hand = dealer_hand + community_cards
+
+        # evaluate cards
+        player_combination = get_best_hand(player_final_hand)
+        dealer_combination = get_best_hand(dealer_final_hand)
+         # set ordered winning combinations
+        winning_hands = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", 
+                        "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
+        
+        if not has_bet:
+            fold += 1
+        elif winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
+            
+            dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+            blind_won = has_blind(blind, player_combination)
+            
+            winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
+            budget += winnings
+
+        elif winning_hands.index(player_combination) == winning_hands.index(dealer_combination):
+            result = decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand)
+            if result == "player":  
+                dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+                blind_won = has_blind(blind, player_combination)
+                
+                winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
+                budget += winnings
+            elif result == "dealer":
+                pass
+            else: 
+                budget += current_bet + ante + blind
+    print(f"preflop {pre}")
+    print(f"flop {flop}")
+    print(f"river {river}")
+    print(f"fold {fold}")
+    print(f"Betted: {bets}")
+    print(f"Preostali proračun: {budget}")
+    print(f"Edge {(budget/bets) * 100}")
 
 if __name__ == "__main__":
     play_game()
