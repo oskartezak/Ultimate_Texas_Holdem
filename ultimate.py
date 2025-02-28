@@ -86,13 +86,12 @@ def get_best_hand(cards):
     return "High Card"
 
 # check for ante condition
-def dealer_has_pair_or_better_or_ace(dealer_hand, community_cards):
+def dealer_has_pair_or_better(dealer_hand, community_cards):
     combined_cards = dealer_hand + community_cards
     hand_strength = get_best_hand(combined_cards)
     stronger_hands = ["One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
-    dealer_has_ace = any(card['rank'] == 'A' for card in dealer_hand)
 
-    return hand_strength in stronger_hands or dealer_has_ace
+    return hand_strength in stronger_hands
 
 
 def has_blind(blind, player_combination):
@@ -433,7 +432,7 @@ def play_game():
         
         print("Čestitke, zmagali ste!") 
 
-        dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+        dealer_has_something = dealer_has_pair_or_better(dealer_hand, community_cards)
         blind_won = has_blind(blind, player_combination)
         
         winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
@@ -448,7 +447,7 @@ def play_game():
         if result == "player":
             print("Čestitke, zmagali ste!")  
             
-            dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+            dealer_has_something = dealer_has_pair_or_better(dealer_hand, community_cards)
             blind_won = has_blind(blind, player_combination)
             
             winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
@@ -658,7 +657,7 @@ def simulation_payout(iter = 1000):
             fold += 1
         elif winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
             
-            dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+            dealer_has_something = dealer_has_pair_or_better(dealer_hand, community_cards)
             blind_won = has_blind(blind, player_combination)
             
             winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
@@ -667,7 +666,7 @@ def simulation_payout(iter = 1000):
         elif winning_hands.index(player_combination) == winning_hands.index(dealer_combination):
             result = decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand)
             if result == "player":  
-                dealer_has_something = dealer_has_pair_or_better_or_ace(dealer_hand, community_cards)
+                dealer_has_something = dealer_has_pair_or_better(dealer_hand, community_cards)
                 blind_won = has_blind(blind, player_combination)
                 
                 winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
