@@ -85,15 +85,20 @@ def get_best_hand(cards):
 
     return "High Card"
 
+stronger_hands = ["One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
 # check for ante condition
 def dealer_has_pair_or_better_or_ace(dealer_hand, community_cards):
     combined_cards = dealer_hand + community_cards
     hand_strength = get_best_hand(combined_cards)
-    stronger_hands = ["One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush", "Royal Flush"]
     dealer_has_ace = any(card['rank'] == 'A' for card in dealer_hand)
 
     return hand_strength in stronger_hands or dealer_has_ace
 
+# check for ante with whole combination
+def has_ante(dealer_hand, dealer_combination):
+    dealer_has_ace = any(card['rank'] == 'A' for card in dealer_hand[:2])
+
+    return dealer_combination in stronger_hands or dealer_has_ace
 
 def has_blind(blind, player_combination):
     if player_combination == "Straight":
@@ -110,6 +115,23 @@ def has_blind(blind, player_combination):
         blind *= 501
 
     return blind
+
+# for machine learning algorithms
+def net_blind_payout(blind, player_combination):
+    if player_combination == "Straight":
+        return blind * 1
+    elif player_combination == "Flush":
+        return blind * 1.5
+    elif player_combination == "Full House":
+        return blind * 3
+    elif player_combination == "Four of a Kind":  
+        return blind * 10
+    elif player_combination == "Straight Flush":
+        return blind * 50
+    elif player_combination == "Royal Flush":
+        return blind * 500
+
+    return 0
 
 # decides kicker / draw
 def decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand):
