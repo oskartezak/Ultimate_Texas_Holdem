@@ -110,6 +110,29 @@ def has_blind(blind, player_combination):
 
     return blind
 
+def trips_bet(trips, player_combination):
+    payout = 0
+    
+    if player_combination == "Three of a Kind":
+        payout += trips * 3
+    elif player_combination == "Straight":
+        payout += trips * 5
+    elif player_combination == "Flush":
+        payout += trips * 6
+    elif player_combination == "Full House":
+        payout += trips * 7
+    elif player_combination == "Four of a Kind":
+        payout += trips * 20
+    elif player_combination == "Straight Flush":
+        payout += trips * 40
+    elif player_combination == "Royal Flush":
+        payout += trips * 50
+    else:
+        payout -= trips
+    
+    return payout
+
+
 # decides kicker / draw
 def decider(player_combination, player_final_hand, dealer_combination, dealer_final_hand):
 
@@ -327,8 +350,9 @@ def play_game():
     
     global budget
 
-    ante = 10 # set ante value
-    blind = 10 # set blind value
+    ante = 5 # set ante value
+    blind = 5 # set blind value
+    trips = 5 # set trips value
     current_bet = 0 # variable for bet
     has_bet = False # has already bet or not
     betting_history = [] # save betting history to be printed 
@@ -428,6 +452,7 @@ def play_game():
     
     if not has_bet:
         print("Žal ste izgubili. Poskusite znova!")
+        budget -= trips
     elif winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
         
         print("Čestitke, zmagali ste!") 
@@ -435,7 +460,7 @@ def play_game():
         dealer_has_something = dealer_has_pair_or_better(dealer_hand, community_cards)
         blind_won = has_blind(blind, player_combination)
         
-        winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
+        winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante) + trips_bet(trips, player_combination)
         budget += winnings
         winnings -= (current_bet + blind + ante)
     
@@ -450,24 +475,30 @@ def play_game():
             dealer_has_something = dealer_has_pair_or_better(dealer_hand, community_cards)
             blind_won = has_blind(blind, player_combination)
             
-            winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante)
+            winnings = current_bet * 2 + blind_won + (ante * 2 if dealer_has_something else ante) + trips_bet(trips, player_combination)
             budget += winnings
             winnings -= (current_bet + blind + ante)
         
             print(f"Vaš dobitek: {winnings}")
 
         elif result == "dealer":
+            winnings = trips_bet(trips, player_combination)
+            budget += winnings
             print("Žal ste izgubili. Poskusite znova!")
 
         else: 
             print("Izenačeno! Stavljeni denar vam je povrnjen.")
-            budget += current_bet + ante + blind
+            budget += current_bet + ante + blind + trips_bet(trips, player_combination)
 
     else:
         print("Žal ste izgubili. Poskusite znova!")
+        budget -= trips
 
 
     print(f"\nPreostali proračun: {budget}")
+
+
+#========================================================================================================
 
 def test(player_hand, dealer_hand, community_cards):
     # take all available cards for evalueation
@@ -573,7 +604,7 @@ def simulation_payout(iter = 1000):
         # subtract ante, blind - always
         budget -= ante
         budget -= blind
-        bets += 20
+        bets += ante + blind
 
         # deal hands to player and dealer 
         player_hand = [deal_card(deck_copy), deal_card(deck_copy)]
@@ -627,7 +658,7 @@ def simulation_payout(iter = 1000):
             if player_best_hand == community_best_hand:
                 if player_has_high_card:
                     current_bet = ante * 1
-                    bets += 1
+                    bets += current_bet
                     river += 1
                     budget -= current_bet
                     has_bet = True
@@ -683,18 +714,50 @@ def simulation_payout(iter = 1000):
     print(f"Preostali proračun: {budget}")
     print(f"Edge {(budget/bets) * 100}")
 
+
+def trips_payout(iter=1000):
+    global budget
+    budget = 0
+
+    # Initialize a dictionary to count only specific hand combinations
+    hand_counts = {
+        "Three of a Kind": 0,
+        "Straight": 0,
+        "Flush": 0,
+        "Full House": 0,
+        "Four of a Kind": 0,
+        "Straight Flush": 0,
+        "Royal Flush": 0,
+    }
+
+    for i in range(iter):
+        trips = 5
+        deck_copy = deck.copy()
+        random.shuffle(deck_copy)
+    
+        player_hand = [deal_card(deck_copy), deal_card(deck_copy)]
+        community_cards = [deal_card(deck_copy) for _ in range(5)]
+        player_final_hand = player_hand + community_cards
+        player_combination = get_best_hand(player_final_hand)
+
+        # Update the hand counter only for recognized combinations
+        if player_combination in hand_counts:
+            hand_counts[player_combination] += 1
+    
+        # Calculate payout for the current hand
+        budget += trips_bet(trips, player_combination)
+    
+    # Calculate and print the edge
+    print(f"Edge {(budget/(trips * iter)) * 100}%")
+    
+    # Print the hand combination counts (only the ones we're tracking)
+    print("Hand combination counts:")
+    for hand, count in hand_counts.items():
+        print(f"{hand}: {count} times")
+
+
 if __name__ == "__main__":
     play_game()
-
-
-
-
-
-
-
-
-
-
 
 
 
