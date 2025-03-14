@@ -94,11 +94,9 @@ def dealer_has_pair_or_better_or_ace(dealer_hand, community_cards):
 
     return hand_strength in stronger_hands or dealer_has_ace
 
-# check for ante with whole combination
+# check for ante with whole combination - for NN
 def has_ante(dealer_hand, dealer_combination):
-    dealer_has_ace = any(card['rank'] == 'A' for card in dealer_hand[:2])
-
-    return dealer_combination in stronger_hands or dealer_has_ace
+    return dealer_combination in stronger_hands
 
 def has_blind(blind, player_combination):
     if player_combination == "Straight":
@@ -116,7 +114,7 @@ def has_blind(blind, player_combination):
 
     return blind
 
-# for machine learning algorithms
+# for machine learning algorithms 
 def net_blind_payout(blind, player_combination):
     if player_combination == "Straight":
         return blind * 1
