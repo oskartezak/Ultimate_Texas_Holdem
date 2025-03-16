@@ -44,6 +44,8 @@ def generate_game(num_of_players = 1):
 # next state and next cards - returns next state input, game is 7-14 with split info for cards
 # each cards ha info about suit (1-4) and rank (1-13)
 #hardcoded for one player
+
+# for 4_13 version
 def state_to_tensor(round, whole_game):
     split_card_info = [element for i in whole_game for element in split_card_dict[i]]
 
@@ -61,6 +63,22 @@ def state_to_tensor(round, whole_game):
     state = np.array([round])
     full_state = np.concatenate([state, cards])
     return torch.from_numpy(full_state).unsqueeze(0).float()
+
+# for embedded version
+def state_to_tensor_embedding(round, whole_game):
+
+    cards_len = len(whole_game) - 2
+    if round == 0:
+        cards = np.array(whole_game[:2])
+    elif round == 1:
+        cards = np.array(whole_game[:5])
+    elif round == 2:
+        cards = np.array(whole_game[:7])
+    else:
+        cards = np.array([]) # irrelevant just for filler
+
+    cards = np.pad(cards, (0, cards_len - len(cards)), mode='constant')
+    return torch.from_numpy(cards).unsqueeze(0), torch.tensor([round]).unsqueeze(0)
 
 #########################################################
 # reward function - target is where the reward was biggest
@@ -115,7 +133,7 @@ def reward_function(round, whole_game, action, norm=True):
     if round == 2:
         if victor == "Player":
             # calculate ante and blind
-            ante_valid = ultimate.has_ante(dealer_hand, dealer_combination) # boolean
+            ante_valid = ultimate.has_ante(dealer_combination) # boolean
             blind_pay = ultimate.net_blind_payout(blind, player_combination) # value if won
             return normalize_reward(ante + blind_pay + (ante if ante_valid else 0))
             #return ante + blind_pay + (ante if ante_valid else 0)
@@ -126,7 +144,7 @@ def reward_function(round, whole_game, action, norm=True):
     elif round == 1:
         if victor == "Player":
             # calculate ante and blind
-            ante_valid = ultimate.has_ante(dealer_hand, dealer_combination) # boolean
+            ante_valid = ultimate.has_ante(dealer_combination) # boolean
             blind_pay = ultimate.net_blind_payout(blind, player_combination) # value if won
             return normalize_reward(2 * ante + blind_pay + (ante if ante_valid else 0))
             #return 2 * ante + blind_pay + ante if ante_valid else 0
@@ -137,7 +155,7 @@ def reward_function(round, whole_game, action, norm=True):
     elif round == 0:
         if victor == "Player":
             # calculate ante and blind
-            ante_valid = ultimate.has_ante(dealer_hand, dealer_combination) # boolean
+            ante_valid = ultimate.has_ante(dealer_combination) # boolean
             blind_pay = ultimate.net_blind_payout(blind, player_combination) # value if won
             return normalize_reward(4 * ante + blind_pay + (ante if ante_valid else 0))
             #return 4 * ante + blind_pay + (ante if ante_valid else 0)
@@ -149,7 +167,10 @@ def reward_function(round, whole_game, action, norm=True):
 class ReplayBuffer:
     def __init__(self, capacity):
         self.buffer = deque(maxlen=capacity)  # Stores experiences up to `capacity`
-
+    
+    def reset(self, capacity):
+        self.buffer = deque(maxlen=capacity)
+        
     # store games in buffer
     def add(self, action, reward, round_input_tensor, next_round_input_tensor, end):
         self.buffer.append((action, reward, round_input_tensor, next_round_input_tensor, end))
@@ -164,12 +185,85 @@ class ReplayBuffer:
 
     def size(self):
         return len(self.buffer)  # Current number of experiences stored
+    
+class ReplayBufferEmbedding:
+    def __init__(self, capacity):
+        self.buffer = deque(maxlen=capacity)  # Stores experiences up to `capacity`
+    
+    def reset(self, capacity):
+        self.buffer = deque(maxlen=capacity)
+        
+    # store games in buffer
+    def add(self, action, reward, cards_input_tensor, round_input_tensor, 
+            next_cards_input_tensor, next_round_input_tensor, end):
+        self.buffer.append((action, reward, cards_input_tensor, round_input_tensor, 
+                            next_cards_input_tensor, next_round_input_tensor, end))
+
+    def sample(self, batch_size):
+        batch = random.sample(self.buffer, batch_size)  # Random mini-batch
+        actions, rewards, cards_input_tensor, round_input_tensors, next_cards_input_tensor, next_round_input_tensors, end = zip(*batch)
+        
+        # Convert to NumPy arrays for easier tensor conversion
+        return (np.array(actions), np.array(rewards), np.array(cards_input_tensor), np.array(round_input_tensors),
+                np.array(next_cards_input_tensor), np.array(next_round_input_tensors), np.array(end))
+
+    def size(self):
+        return len(self.buffer)  # Current number of experiences stored
 
 #########################################################
 # testing model
+def testing_embedding(model, games=10000):
+    model.eval()  # Set model to evaluation mode
+    model
+    budget = 0
+    betted = 0
+    betted4x = 0
+    betted2x = 0
+    betted1x = 0
+    folded = 0
+    for i in range(games):
+        round = 0
+
+        whole_game = generate_game()
+        while True:
+            state_tensor, round_tensor = state_to_tensor_embedding(round, whole_game)
+            
+            with torch.no_grad():
+                q_values = model(state_tensor, round_tensor)
+                action = q_values.argmax().item()
+
+            # if action is no (check/fold) we move to the next round
+            if action == 1 and round != 2:
+                round += 1
+            else:
+                budget += reward_function(round, whole_game, action, norm=False)
+                if action == 1 and round == 2:
+                    folded += 1
+                    betted += 2 # currently hardcoded
+                elif round == 2:
+                    betted1x += 1
+                    betted += 3
+                elif round == 1:
+                    betted2x += 1
+                    betted += 4
+                elif round == 0:
+                    betted4x += 1
+                    betted += 6
+                break
+        
+        #print(f"Game: {i+1}, Budget: {budget}")
+
+    print(f"Total Budget: {budget}")
+    print(f"Total Betted: {betted}")
+    print(f"Folded: {folded}-times")
+    print(f"Betted 4x: {betted4x}-times")
+    print(f"Betted 2x: {betted2x}-times")
+    print(f"Betted 1x: {betted1x}-times")
+
+# testing model
 def testing(model, games=10000):
     model.eval()  # Set model to evaluation mode
-
+    model
     budget = 0
     betted = 0
     betted4x = 0
@@ -214,3 +308,17 @@ def testing(model, games=10000):
     print(f"Betted 4x: {betted4x}-times")
     print(f"Betted 2x: {betted2x}-times")
     print(f"Betted 1x: {betted1x}-times")
+
+#########################################################
+# save and load model
+def save_model(model, optimizer, file_path):
+    torch.save({
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+    }, file_path)
+
+def load_model(model, optimizer, file_path):
+    checkpoint = torch.load(file_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    return model, optimizer
