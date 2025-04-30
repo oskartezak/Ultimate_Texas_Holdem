@@ -4,6 +4,7 @@ import torch
 import ultimate_for_NN as ultimate
 import random 
 from collections import deque
+from itertools import chain
 
 # define card set
 suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
@@ -36,16 +37,14 @@ for i in num_deck:
 def generate_game(num_of_players = 1):
     game_size = 7 + 2*num_of_players
 
-    whole_game = np.random.choice(np.arange(1, 53), size=game_size, replace=False)
-    
-    return whole_game
+    return np.random.choice(np.arange(1, 53), size=game_size, replace=False)
 
 #########################################################
 # next state and next cards - returns next state input, game is 7-14 with split info for cards
 # each cards ha info about suit (1-4) and rank (1-13)
 #hardcoded for one player
 
-# for 4_13 version
+""" # for 4_13 version
 def state_to_tensor(round, whole_game):
     split_card_info = [element for i in whole_game for element in split_card_dict[i]]
 
@@ -62,9 +61,28 @@ def state_to_tensor(round, whole_game):
     cards = np.pad(cards, (0, cards_len - len(cards)), mode='constant')
     state = np.array([round])
     full_state = np.concatenate([state, cards])
-    return torch.from_numpy(full_state).unsqueeze(0).float()
+    return torch.from_numpy(full_state).unsqueeze(0).float() """
+round_card_mapping = {0: 4, 1: 10, 2: 14}
+def state_to_tensor(round, whole_game):
+    # Efficiently flatten `split_card_dict` values using chain.from_iterable
+    split_card_info = list(chain.from_iterable(split_card_dict[i] for i in whole_game))
+ 
+    # Get the correct number of cards (default to 0 if round is out of range)
+    num_cards = round_card_mapping.get(round, 0)
+    cards = np.array(split_card_info[:num_cards], dtype=np.float32)
 
-# for embedded version
+    # Efficient padding if necessary
+    pad_length = len(split_card_info) - num_cards
+    if pad_length > 0:
+        cards = np.pad(cards, (0, pad_length), mode='constant')
+
+    # Concatenate round information
+    full_state = np.concatenate(([round], cards))
+
+    # Convert to Tensor
+    return torch.tensor(full_state, dtype=torch.float32).unsqueeze(0)
+
+""" # for embedded version
 def state_to_tensor_embedding(round, whole_game):
 
     cards_len = len(whole_game) - 2
@@ -78,22 +96,42 @@ def state_to_tensor_embedding(round, whole_game):
         cards = np.array([]) # irrelevant just for filler
 
     cards = np.pad(cards, (0, cards_len - len(cards)), mode='constant')
-    return torch.from_numpy(cards).unsqueeze(0), torch.tensor([round]).unsqueeze(0)
+    return torch.from_numpy(cards).unsqueeze(0), torch.tensor([round]).unsqueeze(0) """
+# Define how many cards should be used at each round
+round_card_mapping_emb = {0: 2, 1: 5, 2: 7}
+def state_to_tensor_embedding(round, whole_game):
+  
+    # Get the correct number of cards (default to 0 if round is out of range)
+    num_cards = round_card_mapping_emb.get(round, 0)
+    cards = np.array(whole_game[:num_cards], dtype=np.int64)  # Ensure dtype is int64 for embedding layers
+
+    # Efficient padding
+    pad_length = len(whole_game) - num_cards - 2
+    if pad_length > 0:
+        cards = np.pad(cards, (0, pad_length), mode='constant')
+
+    # Convert to Tensors
+    cards_tensor = torch.tensor(cards, dtype=torch.long).unsqueeze(0)  # Needed for embedding layers
+    round_tensor = torch.tensor([round], dtype=torch.long).unsqueeze(0)  # Also long if used as an index
+
+    return cards_tensor, round_tensor
 
 #########################################################
+hand_ranking = {hand: rank for rank, hand in enumerate(winning_hands)}
 # reward function - target is where the reward was biggest
 def reward_function(round, whole_game, action, norm=True):
     # normalize reward values (royal flush and straight flusch 
     # will be more than 1 but its tolerable)
     
-    def normalize_reward(r, min_r=-6, max_r=11):
+    """ def normalize_reward(r, min_r=-6, max_r=11):
         if norm == True:
             return (r - min_r) / (max_r - min_r)
         else: 
-            return r
+            return r """
+        
+    normalize_reward = lambda r: (r + 6) / 17 if norm else r
     # blind and ante are set to be 1
-    blind = 1
-    ante = 1
+    blind, ante = 1, 1
 
     # if we fold in third round - we lose 
     if round == 2 and action == 1:
@@ -114,9 +152,9 @@ def reward_function(round, whole_game, action, norm=True):
     #print(player_combination, dealer_combination)
     # find the victor (Player, Dealer, Tie)
     victor = ""
-    if winning_hands.index(player_combination) > winning_hands.index(dealer_combination):
+    if hand_ranking[player_combination] > hand_ranking[dealer_combination]:
         victor = "Player"
-    elif winning_hands.index(player_combination) == winning_hands.index(dealer_combination):
+    elif hand_ranking[player_combination] == hand_ranking[dealer_combination]:
         result = ultimate.decider(player_combination, player_hand, 
                                   dealer_combination, dealer_hand)
         if result == "player":
@@ -129,7 +167,20 @@ def reward_function(round, whole_game, action, norm=True):
     else:
         victor = "Dealer"
 
-    # we bet in third round
+    # Reward logic for different betting rounds
+    bet_multiplier = [4, 2, 1]  # Multipliers for ante depending on round (0,1,2)
+    bet_penalty = [5, 3, 2]     # Penalty for losing per round
+
+    if victor == "Player":
+        ante_valid = ultimate.has_ante(dealer_combination)  # boolean
+        blind_pay = ultimate.net_blind_payout(blind, player_combination)  # value if won
+        reward = bet_multiplier[round] * ante + blind_pay + (ante if ante_valid else 0)
+    else:
+        reward = -blind - bet_penalty[round] * ante
+
+    return normalize_reward(reward)
+
+    """ # we bet in third round
     if round == 2:
         if victor == "Player":
             # calculate ante and blind
@@ -161,7 +212,7 @@ def reward_function(round, whole_game, action, norm=True):
             #return 4 * ante + blind_pay + (ante if ante_valid else 0)
         else:
             return normalize_reward(- blind - 5*ante)
-            #return - blind - 5*ante
+            #return - blind - 5*ante """
 
 #########################################################
 class ReplayBuffer:
@@ -310,7 +361,7 @@ def testing(model, games=10000):
     print(f"Betted 1x: {betted1x}-times")
 
 #########################################################
-# save and load model
+# save and load model - not used
 def save_model(model, optimizer, file_path):
     torch.save({
         'model_state_dict': model.state_dict(),
