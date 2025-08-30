@@ -1,0 +1,99 @@
+\documentclass[a4paper,12pt]{article}
+
+% ----------------------------------
+% Paketi za slovenščino in znanstveno pisanje
+% ----------------------------------
+\usepackage[slovene]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% ----------------------------------
+% Oblika strani
+% ----------------------------------
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+% ----------------------------------
+% Matematični simboli in formule
+% ----------------------------------
+\usepackage{amsmath, amssymb}
+
+% ----------------------------------
+% Slike in tabele
+% ----------------------------------
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs} % lepe tabele
+
+% ----------------------------------
+% Koda (če jo želiš prikazati)
+% ----------------------------------
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{gray!10},
+    frame=single,
+    breaklines=true
+}
+
+% ----------------------------------
+% Naslov
+% ----------------------------------
+\title{Poročilo projekta pri predmetu Izbrane teme iz analize podatkov}
+\author{Neo Mistral, Oskar Težak \\ Fakulteta za matematiko in fiziko, Univerza v Ljubljani}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Uvod}
+
+Cilj projekta je razviti model z uporabo \textbf{nevronskih mrež}, 
+ki bi znal poiskati optimalno strategijo za igranje igre \textit{Texas Hold'em} pokra.
+
+\section{Generiranje in oblike podatkov}
+
+Podatke sva generirala naključno. Igra temelji na 52 kartah, ki sva jih označila s številkami od 1 do 52. 
+Vsak igralec, vključno z delilcem, prejme dve karti, na mizi pa je skupaj pet kart: najprej trije t.~i.~\textit{flop} 
+in nato še dve karti, ki skupaj s prvimi tremi tvorita \textit{river}.
+
+Podatke sva vedno generirala za celotno igro, da sva lahko izračunala njen izid. V model pa sva nato vključila le tiste karte, 
+ki so bile na voljo v določenem krogu igre. Te karte so predstavljale vhodne spremenljivke:
+\begin{itemize}
+    \item v prvem krogu je model videl samo dve karti igralca (ostala mesta so bila nastavljena na 0),
+    \item v drugem krogu pet kart,
+    \item v tretjem krogu vseh sedem kart.
+\end{itemize}
+
+Model nikoli ni imel vpogleda v delilčeve karte. V primeru več igralcev pa je model upošteval tudi njihove karte.
+
+Drugi del podatkov so predstavljale \textbf{ciljne vrednosti}. Preizkusila sva več načinov njihovega določanja:
+\begin{enumerate}
+    \item \textbf{Povprečenje iger} -- za vsak par igralčevih kart sva generirala več možnih kombinacij preostalih kart in izračunala povprečen izid. 
+    Ker pa je igra zasnovana tako, da je to povprečje za igralca vedno negativno, se ta pristop ni izkazal za primernega.
+    \item \textbf{Binaren izid (zmaga/poraz)} -- kot ciljno spremenljivko sva uporabila enostaven pokazatelj zmage ali poraza (0 ali 1).
+    \item \textbf{Izkupiček posamezne igre} -- kot ciljno spremenljivko sva uporabila dejanski izid posamezne igre, brez povprečenja.
+\end{enumerate}
+
+Število podatkov
+
+\section{Metodologija}
+\begin{itemize}
+    \item Opis uporabljenih modelov strojnega učenja
+    \item Parametri in nastavitve
+    \item Postopek treniranja in validacije
+\end{itemize}
+
+\section{Rezultati}
+\begin{itemize}
+    \item Natančnost, F1, MSE, ipd.
+    \item Grafi in tabele rezultatov
+\end{itemize}
+
+\section{Zaključek}
+Povzetek glavnih ugotovitev in predlogi za nadaljnje delo.
+
+\end{document}
