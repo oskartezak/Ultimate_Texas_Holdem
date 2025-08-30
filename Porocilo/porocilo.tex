@@ -53,6 +53,39 @@
 
 Cilj projekta je razviti model z uporabo \textbf{nevronskih mrež}, 
 ki bi znal poiskati optimalno strategijo za igranje igre \textit{Texas Hold'em} pokra.
+\section{Opis igre Ultimate Texas Hold'em}
+
+\textbf{Ultimate Texas Hold'em} je različica pokra, ki se igra proti delilcu, 
+ne pa proti drugim igralcem. Cilj igre je premagati delilca z boljšo 
+poker kombinacijo iz dveh lastnih in petih skupnih kart.
+
+\subsection*{Potek igre}
+\begin{enumerate}
+    \item \textbf{Začetna stava} -- igralec postavi enaka vložka na polji \emph{Ante} in \emph{Blind}. 
+    Po želji lahko postavi tudi stransko stavo \emph{Trips}, ki se izplača na osnovi končne kombinacije.
+    
+    \item \textbf{Deljenje kart} -- igralec in delilec prejmeta po dve skriti karti. 
+    Igralec lahko zdaj izbere, da stavi dodatno stavo \emph{Play} v višini $3\times$ ali $4\times$ 
+    začetne stave, ali pa počaka.
+    
+    \item \textbf{Flop} -- razkrijejo se prve tri skupne karte. Če igralec prej ni stavil, 
+    lahko zdaj postavi stavo \emph{Play} v višini $2\times$ začetne stave, ali pa še vedno počaka.
+    
+    \item \textbf{Turn in River} -- razkrijeta se še četrta in peta skupna karta. 
+    Če igralec do zdaj ni stavil, mora zdaj postaviti stavo \emph{Play} v višini $1\times$ začetne stave.
+    
+    \item \textbf{Razkritje} -- delilec razkrije svoji dve karti. 
+    Za kvalifikacijo mora imeti vsaj par. Če se delilec ne kvalificira, se stava \emph{Ante} vrne igralcu, 
+    stave \emph{Blind} in \emph{Play} pa se obravnavajo glede na primerjavo kombinacij.
+    
+    \item \textbf{Izplačilo} -- 
+    \begin{itemize}
+        \item Stava \emph{Play} se vedno izplača $1:1$, če je igralčeva kombinacija boljša.
+        \item Stava \emph{Ante} se izplača $1:1$, če se delilec kvalificira in igralec zmaga.
+        \item Stava \emph{Blind} se izplača po posebni lestvici, odvisno od moči igralčeve kombinacije (npr. \emph{Straight} $1:1$, \emph{Flush} $3:2$, \emph{Full House} $3:1$, ipd.).
+        \item Stranska stava \emph{Trips} se izplača posebej glede na moč kombinacije, neodvisno od izida proti delilcu.
+    \end{itemize}
+\end{enumerate}
 
 \section{Generiranje in oblike podatkov}
 
@@ -72,20 +105,28 @@ Model nikoli ni imel vpogleda v delilčeve karte. V primeru več igralcev pa je 
 
 Drugi del podatkov so predstavljale \textbf{ciljne vrednosti}. Preizkusila sva več načinov njihovega določanja:
 \begin{enumerate}
-    \item \textbf{Povprečenje iger} -- za vsak par igralčevih kart sva generirala več možnih kombinacij preostalih kart in izračunala povprečen izid. 
-    Ker pa je igra zasnovana tako, da je to povprečje za igralca vedno negativno, se ta pristop ni izkazal za primernega.
-    \item \textbf{Binaren izid (zmaga/poraz)} -- kot ciljno spremenljivko sva uporabila enostaven pokazatelj zmage ali poraza (0 ali 1).
-    \item \textbf{Izkupiček posamezne igre} -- kot ciljno spremenljivko sva uporabila dejanski izid posamezne igre, brez povprečenja.
+    \item \textbf{Povprečenje iger} -- za vsak par igralčevih kart sva generirala več možnih kombinacij preostalih kart in izračunala povprečen izid na 
+    za krog igre. 
+    \item \textbf{Binaren izid (zmaga/poraz)} -- kot ciljno spremenljivko sva uporabila enostaven pokazatelj zmage ali poraza (0 ali 1). 
+    Tudi te vrednosti sva generirala na enak način kot pri povprečenju, le da sva namesto povprečnega izida upoštevala zmago ali poraz.
+    \item \textbf{Izkupiček posamezne igre} -- kot ciljno spremenljivko sva uporabila dejanski izid posamezne igre, brez povprečenja. 
+    Tudi ti podatki so bili generirani enako kot pri prvem pristopu, pri čemer sva ohranila rezultat posamezne igre.
 \end{enumerate}
 
-Število podatkov
+\paragraph{Velikost podatkovne zbirke.}
+Za igralca je velikost podatkovne zbirke znašala 1326 primerov (vseh možnih začetnih kombinacij igralčevih kart). 
+Za preostale karte sva uporabila večkratnike te številke: prvi večkratnik $15$ (za "flop"), drugi $15$ (za "river"), 
+in pri zadnjem večkratnik $20$ (za delilca). 
 
 \section{Metodologija}
-\begin{itemize}
-    \item Opis uporabljenih modelov strojnega učenja
-    \item Parametri in nastavitve
-    \item Postopek treniranja in validacije
-\end{itemize}
+
+Pri večini poskusov sva uporabila \textbf{linearne} oziroma 
+\textbf{konvolucijske nevronske mreže}. 
+Za določanje stavnih pragov sva poleg različnih optimizacijskih pristopov 
+uporabila tudi \textbf{lastne ocene}, s katerimi sva dodatno prilagodila 
+strategijo in izboljšala delovanje modela.
+
+\subsection{Poskus 1.}
 
 \section{Rezultati}
 \begin{itemize}
