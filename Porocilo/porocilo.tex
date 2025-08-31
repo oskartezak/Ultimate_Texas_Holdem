@@ -53,7 +53,9 @@
 
 Cilj projekta je razviti model z uporabo \textbf{nevronskih mrež}, 
 ki bi znal poiskati optimalno strategijo za igranje igre \textit{Texas Hold'em} pokra.
-\section{Opis igre Ultimate Texas Hold'em}
+\section{Opis igre Ultimate Texas Hold'em} 
+
+Link do githuba in katere datoteke so priložene
 
 \textbf{Ultimate Texas Hold'em} je različica pokra, ki se igra proti delilcu, 
 ne pa proti drugim igralcem. Cilj igre je premagati delilca z boljšo 
@@ -124,9 +126,115 @@ Pri večini poskusov sva uporabila \textbf{linearne} oziroma
 \textbf{konvolucijske nevronske mreže}. 
 Za določanje stavnih pragov sva poleg različnih optimizacijskih pristopov 
 uporabila tudi \textbf{lastne ocene}, s katerimi sva dodatno prilagodila 
-strategijo in izboljšala delovanje modela.
+strategijo in izboljšala delovanje modela. Povsod sva poskušala z razlčnimi velikostmi
+slojev.
 
-\subsection{Poskus 1.}
+
+\subsection{Poskus 1}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} konvolucijski in linearni modeli z \textit{one-hot} kodiranjem kart \\
+\textbf{Rezultati testiranja:} rezultati so bili slabi, modeli niso zaznali uporabnih vzorcev in niso uspeli preseči naključnega ugibanja. \\
+\textbf{Komentar:} preveliko število vhodov, ki nosijo premalo informacij. Učenje traja predolgo.
+
+\subsection{Poskus 2}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} konvolucijski in linearni modeli, kjer je bila vsaka karta predstavljena s parom $(\text{rang}, \text{barva})$ \\
+\textbf{Rezultati testiranja:} rezultati so bili nezadovoljivi, saj se prednost delilca ni zmanjšala. \\
+\textbf{Komentar:} takšna predstavitev slabše prikazuje relacije med kartami.
+
+\subsection{Poskus 3}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo in sigmoidno aktivacijsko funkcijo $(0,1)$ \\
+\textbf{Rezultati testiranja:} prag za stavo je bil nastavljen na $0.5$. Delilec je v povprečju ohranil prednost približno $5\%$. \\
+\textbf{Komentar:} težave pri nastavljanju pragov, model je bil zelo občutljiv na manjše spremembe.
+
+\subsection{Poskus 4}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} konvolucijski model z \textit{embedding} plastjo in sigmoidno aktivacijsko funkcijo $(0,1)$ \\
+\textbf{Rezultati testiranja:} prag za stavo $0.5$, delilec je bil v profitu za približno $5\%$. \\
+\textbf{Komentar:} enake težave kot pri linearnem modelu – težavno nastavljanje pragov in občutljivost na spremembe.
+
+\subsection{Poskus 5}
+\textbf{Vhodni podatki:} binarni izid igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo in sigmoidno aktivacijsko funkcijo $(0,1)$ \\
+\textbf{Rezultati testiranja:} prag za stavo $0.5$. Delilec je ohranil prednost približno $7\%$. \\
+\textbf{Komentar:} model ocenjuje le zmage/poraze, ne pa dobička, zato so razlike v izkupičku lahko velike.
+
+\subsection{Poskus 6}
+\textbf{Vhodni podatki:} binarni izid igre \\
+\textbf{Model:} konvolucijski model z \textit{embedding} plastjo in sigmoidno aktivacijsko funkcijo $(0,1)$ \\
+\textbf{Rezultati testiranja:} prag za stavo $0.5$. Delilec je bil v profitu približno $7\%$. \\
+\textbf{Komentar:} enake omejitve kot pri linearnem modelu – ocenjevanje le zmage, brez upoštevanja velikosti dobička.
+
+\subsection{Poskus 7}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} konvolucijski model z \textit{embedding} plastjo in sigmoidno aktivacijsko funkcijo $(0,1)$ \\
+\textbf{Rezultati testiranja:} prag za stavo $0.5$. Delilec je bil v prednosti približno $4\%$. \\
+\textbf{Komentar:} za enako kakovost rezultatov je potrebna bistveno večja količina podatkov kot pri povprečenju.
+
+\subsection{Poskus 8}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo in sigmoidno aktivacijsko funkcijo $(0,1)$ \\
+\textbf{Rezultati testiranja:} prag za stavo $0.5$. Delilec je bil v prednosti približno $5\%$. \\
+\textbf{Komentar:} enake ugotovitve kot pri poskusu 7 – potrebna je večja količina podatkov.
+
+\subsection{Poskus 9}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} prag za stavo ročno prilagojen okoli $0$, fiksen za vse kroge. Delilec je bil v povprečju v prednosti približno $4\%$. \\
+\textbf{Komentar:} ročno nastavljanje pragov je lažje, model pa se uči razmeroma hitro.
+
+\subsection{Poskus 10}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} konvolucijski model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} prag za stavo ročno prilagojen okoli $0$, fiksen za vse kroge. Delilec je bil v prednosti približno $4\%$. \\
+\textbf{Komentar:} podobno kot pri linearnem modelu – enostavnejše nastavljanje pragov in hitrejše učenje.
+
+\subsection{Poskus 11}
+\textbf{Vhodni podatki:} binarni izid igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} prag za stavo ročno nastavljen okoli $0.5$. Delilec je bil v prednosti približno $5\%$. \\
+\textbf{Komentar:} ni velike razlike v primerjavi z uporabo sigmoidne funkcije. Model še vedno ne meri dejanskega dobička.
+
+\subsection{Poskus 12}
+\textbf{Vhodni podatki:} binarni izid igre \\
+\textbf{Model:} konvolucijski model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} prag za stavo ročno nastavljen okoli $0.5$. Delilec je bil v prednosti približno $6\%$. \\
+\textbf{Komentar:} podobno kot pri linearnem modelu – brez merjenja dejanskega dobička, rezultati ostajajo nezadostni.
+
+\subsection{Poskus 13}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} konvolucijski model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} prag za stavo ročno nastavljen okoli $0$, fiksen za vse kroge. Delilec je bil v prednosti približno $4\%$. \\
+\textbf{Komentar:} zaradi velike količine podatkov je bilo učenje počasno.
+
+\subsection{Poskus 14}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} prag za stavo ročno nastavljen okoli $0$, fiksen za vse kroge. Delilec je bil v prednosti približno $4\%$. \\
+\textbf{Komentar:} enake težave kot pri poskusu 13 – prevelik obseg podatkov in posledično počasno učenje.
+
+\subsection{Poskus 15}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} pragovi za vsak krog optimizirani z \texttt{minimize} funkcijo. 
+Delilec je bil v prednosti približno $3\%$. \\
+\textbf{Komentar:} hitro učenje, optimizator se je izkazal kot učinkovit.
+
+\subsection{Poskus 16}
+\textbf{Vhodni podatki:} povprečenje iger \\
+\textbf{Model:} konvolucijski model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} pragovi za vsak krog optimizirani z \texttt{minimize} funkcijo. 
+Delilec je bil v prednosti približno $3\%$. \\
+\textbf{Komentar:} hitro učenje, optimizator se je izkazal kot učinkovit.
+
+
+\section{Problemi}
+- vhodna oblika podatkov
+- pri sigmoidni funkciji podatki zgoščeni pri 0 in 1
+
+\section{Za n igralcev}
+- opisi poskusov in ugotovitve (negativne)
 
 \section{Rezultati}
 \begin{itemize}
