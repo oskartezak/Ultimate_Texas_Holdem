@@ -41,21 +41,62 @@
 % ----------------------------------
 % Naslov
 % ----------------------------------
-\title{Poročilo projekta pri predmetu Izbrane teme iz analize podatkov}
-\author{Neo Mistral, Oskar Težak \\ Fakulteta za matematiko in fiziko, Univerza v Ljubljani}
+\title{\Huge \textbf{Ultimate Texas Hold'em} \\[0.5em]
+\Large Poročilo projekta pri predmetu \\[0.2em]
+\textit{Izbrane teme iz analize podatkov}}
+\author{\Large Neo Mistral \and Oskar Težak \\[1em]
+Fakulteta za matematiko in fiziko \\ Univerza v Ljubljani}
 \date{\today}
 
 \begin{document}
 
-\maketitle
+\begin{titlepage}
+    \centering
+    \vspace*{3cm}
+    
+    {\Huge \bfseries Ultimate Texas Hold'em \par}
+    \vspace{0.7cm}
+    {\Large Poročilo projekta pri predmetu \par}
+    \vspace{0.3cm}
+    {\LARGE \textit{Izbrane teme iz analize podatkov} \par}
+    
+    \vfill
+    
+    {\Large Neo Mistral \\ Oskar Težak \par}
+    \vspace{0.5cm}
+    {\large Fakulteta za matematiko in fiziko \\ Univerza v Ljubljani \par}
+    
+    \vfill
+    
+    {\large \today \par}
+\end{titlepage}
 
 \section{Uvod}
 
 Cilj projekta je razviti model z uporabo \textbf{nevronskih mrež}, 
 ki bi znal poiskati optimalno strategijo za igranje igre \textit{Texas Hold'em} pokra.
+
+Najboljši in končni rezultati so vključeni v dveh priloženih Jupyter zvezkih:
+\begin{itemize}
+    \item \texttt{NN-Optim\_Mean.ipynb} \,– končna konfiguracija in rezultati za \textbf{enega igralca} (optimizacija pragov po krogih).
+    \item \texttt{NN-Optim\_Mean\_n.ipynb} \,– končna konfiguracija in rezultati za \textbf{$n$ igralcev} (posplošitev na večigralni scenarij).
+\end{itemize}
+
+Potek in logika \textbf{generiranja podatkov} sta podrobno dokumentirana v zvezku:
+\begin{itemize}
+    \item \texttt{data\_generation.ipynb} \,– opis načina vzorčenja, strukturiranja vhodov za posamezne kroge (\emph{pre-flop}, \emph{flop}, \emph{turn}, \emph{river}) in priprava ciljnih spremenljivk (povprečenje, binarni izid, izkupiček posamezne igre).
+\end{itemize}
+
+Dodatne pomožne skripte, vmesni poskusi ter spremljevalne datoteke so dostopni v javnem repozitoriju:
+\texttt{github.com/oskartezak/Ultimate\_Texas\_Holdem}
+
+Za potrebe projekta sva pravila igre in logiko popolnoma sama implementirala, 
+s čimer sva pridobila popoln nadzor nad generiranjem podatkov in načinom 
+prikazovanja igre v simulacijah.
+
 \section{Opis igre Ultimate Texas Hold'em} 
 
-Link do githuba in katere datoteke so priložene
+
 
 \textbf{Ultimate Texas Hold'em} je različica pokra, ki se igra proti delilcu, 
 ne pa proti drugim igralcem. Cilj igre je premagati delilca z boljšo 
@@ -230,19 +271,80 @@ Delilec je bil v prednosti približno $3\%$. \\
 
 
 \section{Problemi}
-- vhodna oblika podatkov
-- pri sigmoidni funkciji podatki zgoščeni pri 0 in 1
 
-\section{Za n igralcev}
-- opisi poskusov in ugotovitve (negativne)
+Med izvajanjem projekta sva naletela na več izzivov, ki so pomembno vplivali na kakovost rezultatov in hitrost eksperimentiranja:
 
-\section{Rezultati}
 \begin{itemize}
-    \item Natančnost, F1, MSE, ipd.
-    \item Grafi in tabele rezultatov
+    \item \textbf{Vhodna oblika podatkov:} izbira načina predstavitve kart (npr. \textit{one-hot} kodiranje, $(rang, barva)$, 
+    \textit{embedding} vektorji) se je izkazala za ključni dejavnik uspešnosti modela. Napačna reprezentacija 
+    močno oteži učenje relevantnih relacij.
+    
+    \item \textbf{Sigmoidna funkcija:} uporaba sigmoidne aktivacijske funkcije je povzročila, da so se vrednosti izhoda 
+    pogosto zgoščale v bližini $0$ ali $1$, kar je otežilo stabilno določanje pragov za stave.
+    
+    \item \textbf{Omejena računska moč:} zaradi omejenih zmogljivosti uporabljenih računalnikov je bilo treniranje 
+    modelov počasno, kar je zmanjšalo možnost izvedbe večjih eksperimentov in podrobnejšega iskanja optimalnih nastavitev.
+    
+    \item \textbf{Čas treniranja:} posamezni poskusi so zahtevali veliko časa za učenje, še posebej pri večjih podatkovnih 
+    zbirkah, kar je otežilo iterativno izboljševanje modelov.
+    
+    \item \textbf{Narava igre:} zasnova igre Texas Hold'em daje dolgoročno prednost delilcu. 
+    To pomeni, da model v resnici ne trenira za \emph{zmago}, temveč za zmanjševanje izgub oziroma iskanje 
+    strategije, ki vodi v najmanjši možni poraz.
 \end{itemize}
 
-\section{Zaključek}
-Povzetek glavnih ugotovitev in predlogi za nadaljnje delo.
+\section{Za n igralcev}
+
+\subsection{Podatki}
+Za ta sklop poskusov sva uporabila podatke, generirane s \textbf{povprečenjem iger}, 
+pri čemer je bilo v simulaciji vključenih \textbf{štiri igralce}. 
+Tako kot pri prejšnjih eksperimentih je bil cilj oceniti uspešnost modela pri napovedovanju optimalne strategije.
+
+\subsection{Metodologija}
+Metodološki pristop je bil zasnovan podobno kot pri poskusih z enim igralcem. 
+Uporabila sva tako \textbf{linearne} kot tudi \textbf{konvolucijske modele}, 
+pri čemer sva za določanje stavnih pragov izvedla dodatno \textbf{optimizacijo}. 
+
+\textbf{Rezultati testiranja:} 
+Kljub uporabi optimizacije so bili rezultati nezadovoljivi, saj je delilec ohranil 
+prednost približno $5.3\%$. 
+
+\textbf{Komentar:} 
+Glavni razlog za slabše rezultate je bilo verjetno \textbf{premalo podatkov}, 
+da bi model uspel pravilno razbrati vlogo vseh kart in interakcij med več igralci.
+
+\section{Rezultati}
+
+Rezultati eksperimentov kažejo, da uporaba različnih reprezentacij vhodnih podatkov 
+(povprečenje iger, binarni izid, izkupiček posamezne igre) ter različnih arhitektur modelov 
+(linearni in konvolucijski modeli z \textit{embedding} plastmi) vpliva na končno uspešnost.
+
+\subsection*{Povprečenje iger}
+Pri uporabi povprečenja iger so linearni in konvolucijski modeli z \textit{one-hot} 
+kodiranjem ali kodiranjem kart kot $(rang, barva)$ dosegali slabe rezultate. 
+Modeli niso uspeli izluščiti uporabnih vzorcev, treniranje je bilo dolgotrajno, 
+prednost delilca pa se je ohranila na ravni približno $5\%$.
+
+\subsection*{Binarni izid}
+Pri prehodu na binaren izid (zmaga/poraz) so modeli dosegali nekoliko stabilnejše napovedi, 
+vendar brez izboljšanja končnega rezultata. Delilec je v povprečju obdržal prednost med $6\%$ in $7\%$, 
+pri čemer se je izkazalo, da ocenjevanje zgolj zmage brez dejanskega izkupička 
+poda popačeno sliko uspešnosti strategije.
+
+\subsection*{Izkupiček posamezne igre}
+Pri uporabi dejanskega izkupička posamezne igre so bili rezultati primerljivi, 
+a je bila za enako kakovost rezultatov potrebna bistveno večja količina podatkov. 
+Delilec je tudi tukaj ostal v prednosti približno $4$--$5\%$.
+
+\subsection*{Optimizacija pragov}
+Najboljše rezultate sva dosegla z \textbf{optimizacijo pragov} za posamezne kroge igre 
+z uporabo funkcije \texttt{minimize}. V tem primeru je bilo mogoče zmanjšati prednost delilca 
+na približno $3\%$. To predstavlja najbolj obetaven pristop, saj kaže, da je z ustrezno optimizacijo 
+mogoče nekoliko zmanjšati naravno prednost igre.
+
+\subsection*{Sklepne ugotovitve}
+Kljub različnim pristopom in arhitekturam so modeli le delno zmanjšali prednost delilca. 
+Najboljši doseženi rezultat je bil približno $3\%$ v prid delilca, kar ni bil dosti boljši
+rezultat, kot sva ga dosegla z lastnimi strategijami.
 
 \end{document}
