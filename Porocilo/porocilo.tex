@@ -90,9 +90,10 @@ Potek in logika \textbf{generiranja podatkov} sta podrobno dokumentirana v zvezk
 Dodatne pomožne skripte, vmesni poskusi ter spremljevalne datoteke so dostopni v javnem repozitoriju:
 \texttt{github.com/oskartezak/Ultimate\_Texas\_Holdem}
 
-Za potrebe projekta sva pravila igre in logiko popolnoma sama implementirala, 
+Za potrebe projekta sva pravila igre in logiko popolnoma sama implementirala (ultimate.py), 
 s čimer sva pridobila popoln nadzor nad generiranjem podatkov in načinom 
-prikazovanja igre v simulacijah.
+prikazovanja igre v simulacijah. V datotetki testiranje.ipynb pa se lahko preiskusi in dobi vpogled v porazdelitev
+kombinacij in izid iger pri najini začetni stregiji, katero je cilj izboljšati z uporabo nevronskih mrež.
 
 \section{Opis igre Ultimate Texas Hold'em} 
 
@@ -160,6 +161,20 @@ Drugi del podatkov so predstavljale \textbf{ciljne vrednosti}. Preizkusila sva v
 Za igralca je velikost podatkovne zbirke znašala 1326 primerov (vseh možnih začetnih kombinacij igralčevih kart). 
 Za preostale karte sva uporabila večkratnike te številke: prvi večkratnik $15$ (za "flop"), drugi $15$ (za "river"), 
 in pri zadnjem večkratnik $20$ (za delilca). 
+
+\vspace{0.3cm}
+\noindent
+Očitno za optimalno strategijo v prvem krogu (preflop) ni zares potreben model, saj lahko "profitabilne" začetne roke razberemo direktno iz vzorca, 
+ampak v kasnejših krogih (flop, river) postane prostor možnih kombinacij prevelik, zato je uporaba modela smiselna za posploševanje in napovedovanje 
+vrednosti tudi za redke ali še nevidene situacije. Kritične so tudi mejne sitiacije, kjer je pričakovan dobiček blizu 0, saj se lahko in se zgodi, da
+so nekatere karte bolj "dovzetne" za nekatere kombinacije in dobijo večji potencial v nadaljevanju. Okvirna strategija za preflop je prikazana na nasklednji sliki:
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{porazdelitev.png}
+    \caption{Prikaz profitabilnosti začetnih kart v prvem krogu (preflop).}
+    \label{fig:preflop}
+\end{figure}
 
 \section{Metodologija}
 
@@ -267,7 +282,60 @@ Delilec je bil v prednosti približno $3\%$. \\
 \textbf{Model:} konvolucijski model z \textit{embedding} plastjo \\
 \textbf{Rezultati testiranja:} pragovi za vsak krog optimizirani z \texttt{minimize} funkcijo. 
 Delilec je bil v prednosti približno $3\%$. \\
-\textbf{Komentar:} hitro učenje, optimizator se je izkazal kot učinkovit.
+\textbf{Komentar:} hitro učenje, optimizator se je izkazal kot učinkovit. \\
+
+\vspace{0.5cm}
+\noindent
+Vsi nadaljni poskusi so bili izvedeni z dvojnim outputom in sicer z pričakovao vrednostjo in standardnim odklonom.
+Nova ocenjevana spremnljivka je bil tako \textbf{Sharpe ratio}: $Sharpe = \frac{EV}{std}.$ Izkaže se, da pri malem številu iger pride do
+zelo velike variance med posameznimi poskusi, zato je ta pristop (vsaj v teoriji) bolj robusten.
+
+\subsection{Poskus 17}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} Prednost delilca okoli $6\%$. \\
+\textbf{Komentar:} Zelo počasno učenje, težava z batch_size in posledično oceno standardnega odklona.
+
+\subsection{Poskus 18}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo \\
+\textbf{Rezultati testiranja:} Pragovi optimizirani z isto mrezo preko soft praga (sigmoid). Prednost delilca okoli $5\%$.\\
+\textbf{Komentar:} Soft pragovi se izkažejo kot neučinkoviti, a z hard mejami to ni izvedljivo (ni diferenciabilnosti).
+
+\subsection{Poskus 19}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo in poolingom \\
+\textbf{Rezultati testiranja:} Prednost delilca okoli $6\%$.\\
+\textbf{Komentar:} Premalo computing power-ja, za tako veliko količino podatkov, zato je bil za občutek pognan na manjšem vzorcu.
+
+\subsection{Poskus 20}
+\textbf{Vhodni podatki:} izkupiček posamezne igre \\
+\textbf{Model:} linearni model z \textit{embedding} plastjo in poolingom \\
+\textbf{Rezultati testiranja:} Enako kot pri 18. Prednost delilca okoli $7\%$.\\
+\textbf{Komentar:} Enako kot pri 19.
+
+\subsection*{Primer igranja algoritma}
+\begin{verbatim}
+Odigranih je bilo 1000 iger
+Preflop: 371, Flop: 177, River: 276, Fold: 176
+Betted: 20570, Končni proračun: 1100.0
+Dobiček: 0.49%
+Najvišje stanje: 1255.0 v igri 448
+Three of a Kind: 43
+Straight: 40
+Flush: 27
+Full House: 28
+Four of a Kind: 1
+Straight Flush: 0
+Royal Flush: 0
+\end{verbatim}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{gibanje.png}
+    \caption{Primer igranja algoritma.}
+    \label{fig:gib}
+\end{figure}
 
 
 \section{Problemi}
@@ -338,13 +406,4 @@ Delilec je tudi tukaj ostal v prednosti približno $4$--$5\%$.
 
 \subsection*{Optimizacija pragov}
 Najboljše rezultate sva dosegla z \textbf{optimizacijo pragov} za posamezne kroge igre 
-z uporabo funkcije \texttt{minimize}. V tem primeru je bilo mogoče zmanjšati prednost delilca 
-na približno $3\%$. To predstavlja najbolj obetaven pristop, saj kaže, da je z ustrezno optimizacijo 
-mogoče nekoliko zmanjšati naravno prednost igre.
-
-\subsection*{Sklepne ugotovitve}
-Kljub različnim pristopom in arhitekturam so modeli le delno zmanjšali prednost delilca. 
-Najboljši doseženi rezultat je bil približno $3\%$ v prid delilca, kar ni bil dosti boljši
-rezultat, kot sva ga dosegla z lastnimi strategijami.
-
-\end{document}
+z uporabo funkcije \texttt{min
